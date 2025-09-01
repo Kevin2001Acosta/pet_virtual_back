@@ -17,6 +17,6 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from src.database.models import user_model
+from src.database.models import user_model, chat_history_model
 
 Base.metadata.create_all(bind=engine)

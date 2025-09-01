@@ -9,7 +9,7 @@ load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
 
-model_name = 'llama3-8b-8192'
+model_name = 'llama-3.1-8b-instant'
 llm = ChatGroq(model=model_name, api_key=api_key, temperature=0.1)
 
 
