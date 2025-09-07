@@ -91,4 +91,4 @@ async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(g
     
     await send_reset_password_email(user.email, reset_link)
     
-    return {"message": "Correo de restablecimiento de contraseña enviado"}
+    return {"message": "Se ha enviado un enlace de recuperación a tu correo electrónico"}
