@@ -39,7 +39,22 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    response = response_chatbot(request.message)
+    history = (
+        db.query(ChatHistory)
+        .filter_by(user_id=user.id)
+        .order_by(ChatHistory.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+    
+    chat_memory = [
+        {"role": "user", "content": chat.question}
+        if i % 2 == 0 else
+        {"role": "assistant", "content": chat.answer}
+        for i, chat in enumerate(reversed(history))
+    ]
+    
+    response = response_chatbot(request.message, chat_memory)
     
     # Guardar el historial de chat
     chat_entry = ChatHistory(

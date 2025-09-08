@@ -25,11 +25,11 @@ chatbot = LLMChain(
     verbose=True,
 )
 
-def response_chatbot( message: str) -> str:
+def response_chatbot( message: str, chat_memory: str) -> str:
     """
     Función para obtener la respuesta del chatbot.
     """
     # Lógica del servicio: interactuar con el modelo de lenguaje
-    response = chatbot.invoke({'text': message})
+    response = chatbot.invoke({'text': message, 'chat_memory': chat_memory})
     print(response)
     return response['text']
