@@ -6,7 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from src.routes.chatbot_route import router as chatbot_router
 from src.routes.user_route import router as user_router
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 @app.get("/")
 def read_root():

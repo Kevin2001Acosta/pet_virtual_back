@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from src.models.enums import TokenType
 from src.services.email_service import send_reset_password_email
-from src.models.user_schema import ResetPasswordRequest, UserCreate, UserLogin
-from src.services.user_service import create_user, authenticate_user
+from src.models.user_schema import ResetPasswordRequest, UserCreate, UserLogin, changePasswordRequest
+from src.services.user_service import create_user, authenticate_user, create_token, verify_token, update_user_password
 from src.database.db import SessionLocal
 from src.database.models.user_model import User
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 router = APIRouter()
@@ -67,6 +73,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     
 
 
+backendUrl = os.getenv("BACKEND_URL")
 
 @router.post("/forgot-password")
 async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -86,9 +93,53 @@ async def forgot_password(request: ResetPasswordRequest, db: Session = Depends(g
     user = db.query(User).filter_by(email=request.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    reset_link = f"http://example.com/reset-password?email={user.email}&token=dummy-token"
+    token = create_token(user.email)
+    reset_link = f"{backendUrl}/users/reset-password?token={token}"
     
     await send_reset_password_email(user.email, reset_link)
     
     return {"message": "Correo de restablecimiento de contraseña enviado"}
+
+
+templates = Jinja2Templates(directory="src/templates")
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def serve_reset_password_page(request: Request, token: str):
+    return templates.TemplateResponse(
+        "reset_password.html",
+        {"request": request, "token": token}
+    )
+
+@router.put("/reset-password")
+def reset_password_confirm(request: changePasswordRequest, db: Session = Depends(get_db)):
+    """
+    Restablece la contraseña del usuario utilizando un token y una nueva contraseña.
+
+    Args:
+        request (changePasswordRequest): The request containing the token and new password.
+        db (Session, optional): Database session. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
+        HTTPException: If the user associated with the token is not found.
+
+    Returns:
+        dict: A message indicating that the password has been reset successfully.
+    """
+
+    result = verify_token(request.token, TokenType.RESET_PASSWORD)
+    success = result.get("success")
+    if not success:
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    email = result.get("email")
+    user = db.query(User).filter_by(email=email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user = update_user_password(db, user, request.new_password)
+    
+    return {
+        "success": True,
+        "message": "Contraseña restablecida exitosamente",
+        "Name": user.name
+        }

@@ -12,3 +12,7 @@ class UserLogin(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
+    
+class changePasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8, max_length=128)
