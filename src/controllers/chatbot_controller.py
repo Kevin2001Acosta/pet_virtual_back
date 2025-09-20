@@ -46,27 +46,24 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         .limit(5)
         .all()
     )
+    print(history)
     
-    chat_memory = [
-        {"role": "user", "content": chat.question}
-        if i % 2 == 0 else
-        {"role": "assistant", "content": chat.answer}
-        for i, chat in enumerate(reversed(history))
-    ]
     
-    response = response_chatbot(request.message, chat_memory)
+    response_data = response_chatbot(request.message, history)
     
     # Guardar el historial de chat
     chat_entry = ChatHistory(
         user_id=user.id,
         question=request.message,
-        answer=response
+        answer=response_data['response']
         )
     db.add(chat_entry)
     db.commit()
     db.refresh(chat_entry)
     
-    return {"response": response, "chat_id": chat_entry.id}
+    return {"response": response_data['response'],
+            "emotion": response_data['emotion'],
+            "chat_id": chat_entry.id}
 
 @router.get("/chat/history")
 def get_chat_history(email: str, db: Session = Depends(get_db)):
