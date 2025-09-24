@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
 from langchain_groq import ChatGroq
-from langchain_core.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts.chat import ChatPromptTemplate
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
@@ -30,12 +30,13 @@ llm = ChatGroq(model=model_name, api_key=api_key, temperature=0.1)
 extraction_prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "Eres un asistente que extrae información personal relevante del usuario. "
-     "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes, "
-     "devuelve un JSON con esos campos. "
-     "Si no hay información relevante, devuelve un JSON vacío {}."
+     "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes del USUARIO solamente, NO del asistente, "
+     "Responde ÚNICAMENTE con un JSON con los campos extraídos. "
+     "Si no hay información relevante, devuelve un JSON vacío {{}}."
     ),
     ("human", "{input}")
 ])
+
 
 extractor = extraction_prompt | llm | JsonOutputParser()
 
