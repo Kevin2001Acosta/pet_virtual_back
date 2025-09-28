@@ -35,6 +35,9 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         _type_: A message with the response from chatbot.
         """
     
+    # TODO: La validación del usuario y extracción del historial debería hacerse en services
+    # TODO: La validación del usuario debería hacerse con JWT y OAuth2 o algo así
+    
     user = db.query(User).filter_by(email=request.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -49,7 +52,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     print(history)
     
     
-    response_data = response_chatbot(request.message, history)
+    response_data = response_chatbot(request.message, history, user.id, db)
     
     # Guardar el historial de chat
     chat_entry = ChatHistory(

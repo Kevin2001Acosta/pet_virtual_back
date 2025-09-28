@@ -24,3 +24,7 @@ yarn.lock
 npm-debug.log
 # Ignore test output files
 test-output/
+# Ignore compiled files
+.cpython-*.pyc
+# Ignore __pycache__ directories
+__pycache__/

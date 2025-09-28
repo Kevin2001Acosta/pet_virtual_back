@@ -1,13 +1,15 @@
 from typing import Dict, List, Any
 from langchain_groq import ChatGroq
-from langchain_core.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts.chat import ChatPromptTemplate
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 import os
 
 from src.database.models.chat_history_model import ChatHistory
+from src.database.models.user_profile_model import UserProfile
+from sqlalchemy.orm import Session
 from src.services.emotion_service import analyze_emotion
 
 load_dotenv()
@@ -21,21 +23,40 @@ class ChatState(Dict[str, Any]):
 
 
 model_name = 'llama-3.1-8b-instant'
+
 llm = ChatGroq(model=model_name, api_key=api_key, temperature=0.1)
 
+# Prompt y extractor para detección de información personal relevante
+extraction_prompt = ChatPromptTemplate.from_messages([
+    ("system", 
+     "Eres un asistente que extrae información personal relevante del usuario. "
+     "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes del USUARIO solamente, NO del asistente, "
+     "Responde ÚNICAMENTE con un JSON con los campos extraídos. "
+     "Si no hay información relevante, devuelve un JSON vacío {{}}."
+    ),
+    ("human", "{input}")
+])
 
+
+extractor = extraction_prompt | llm | JsonOutputParser()
+
+
+
+# Prompt y runnable para el chatbot
 prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "Te llamas Luck, un perro asistente amigable que habla español. "
-     "Debes responder con empatía y amabilidad. "
+     "Adapta tu respuesta según la emoción detectada y la información del usuario. "
+     "Información conocida del usuario: {profile}. "
      "El usuario tiene la emoción detectada: {emotion}. "
-     "Adapta tu respuesta a esa emoción."
     ),
     ("placeholder", "{history}"),
     ("human", "{input}")
 ])
 
 runnable = prompt | llm | StrOutputParser()
+
+
 
 # Nodo del grafo: procesa un turno de conversación
 
@@ -61,16 +82,36 @@ graph.set_finish_point("chatbot")
 
 chatbot_graph = graph.compile()
 
-def response_chatbot( message: str, chat_memory: List[ChatHistory]) -> Dict[str, str]:
+
+
+
+def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int, db: Session) -> Dict[str, str]:
     """
-    Función para obtener la respuesta del chatbot.
+    Función para obtener la respuesta del chatbot, extraer información personal y guardar en la base de datos.
     """
+    # 1. Detectar emoción
     emotion = analyze_emotion(message)
     print(f"Emoción detectada: {emotion}")
-    
-    # Lógica del servicio: interactuar con el modelo de lenguaje
-    state = {"messages": chat_memory, "input": message, "emotion": emotion}
-    new_state = chatbot_graph.invoke(state)
-    return {'response': new_state["messages"][-1]["content"],
-            'emotion': emotion
-            }
+
+    # 2. Extraer información personal (si la hay)
+    extracted_info = extractor.invoke({"input": message})
+    if extracted_info and extracted_info != {}:
+        for key, value in extracted_info.items():
+            db.add(UserProfile(user_id=user_id, key=key, value=value))
+        db.commit()
+
+    # 3. Preparar contexto: historial + perfil de usuario
+    user_profile = db.query(UserProfile).filter_by(user_id=user_id).all()
+    profile_context = "\n".join([f"{p.key}: {p.value}" for p in user_profile])
+
+    state = {
+        "messages": chat_memory,
+        "input": message,
+        "emotion": emotion,
+        "profile": profile_context
+    }
+
+    # 4. Incluir perfil en el prompt
+    response = runnable.invoke(state)
+
+    return {"response": response, "emotion": emotion}
