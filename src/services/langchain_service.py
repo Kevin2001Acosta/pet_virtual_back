@@ -31,8 +31,12 @@ extraction_prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "Eres un asistente que extrae información personal relevante del usuario. "
      "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes del USUARIO solamente, NO del asistente, "
-     "Responde ÚNICAMENTE con un JSON con los campos extraídos. "
+     "Responde ÚNICAMENTE con un JSON válido. No escribas nada fuera del JSON. con los campos extraídos."
      "Si no hay información relevante, devuelve un JSON vacío {{}}."
+     "Ejemplo de que no debes hacer: {{'nombre': 'no especificado'}}"
+     "Si el nombre o cualquier dato no fué especificado solo entrega un JSON vacío."
+     "Solo quiero que entregues la info del usuario, que toda esté especificada."
+     "Ejemplo de que debes hacer: Pregunta:  hola, hoy me fue bien en la universidad, estoy estudiando ingeniera de sistemas, Respuesta: {{'estudios': 'ingeniería de sistemas'}}"
     ),
     ("human", "{input}")
 ])
@@ -94,7 +98,12 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     print(f"Emoción detectada: {emotion}")
 
     # 2. Extraer información personal (si la hay)
-    extracted_info = extractor.invoke({"input": message})
+    try:
+        extracted_info = extractor.invoke({"input": message})
+    except Exception:
+        extracted_info = {}
+    print(f"Información extraída: {extracted_info}")
+    
     if extracted_info and extracted_info != {}:
         for key, value in extracted_info.items():
             db.add(UserProfile(user_id=user_id, key=key, value=value))

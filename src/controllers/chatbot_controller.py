@@ -49,7 +49,6 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         .limit(5)
         .all()
     )
-    print(history)
     
     
     response_data = response_chatbot(request.message, history, user.id, db)
