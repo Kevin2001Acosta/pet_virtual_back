@@ -10,14 +10,24 @@ import os
 from src.database.models.chat_history_model import ChatHistory
 from src.services.emotion_service import analyze_emotion
 
+
+from src.rag_system.system.rag_core import obtener_contexto_rag
+
+
+
+
 load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
+
 
 # Definir el estado del grafo
 class ChatState(Dict[str, Any]):
     messages: List[Dict[str, str]]  # Lista de mensajes en el chat
     input: str
+    
+    user_id: str #Nueva
+    
 
 
 model_name = 'llama-3.1-8b-instant'
@@ -30,6 +40,9 @@ prompt = ChatPromptTemplate.from_messages([
      "Debes responder con empatía y amabilidad. "
      "El usuario tiene la emoción detectada: {emotion}. "
      "Adapta tu respuesta a esa emoción."
+     "Usa este contexto de tus documentos para personalizar tu respuesta: {chroma_context} y ser más empatico"
+     
+     
     ),
     ("placeholder", "{history}"),
     ("human", "{input}")
@@ -46,11 +59,22 @@ def chatbot_node(state: ChatState) -> ChatState:
         history_msgs.append(HumanMessage(content=chat.question))
         history_msgs.append(AIMessage(content=chat.answer))
         
-    
+        
+        
+    rag_context = obtener_contexto_rag(state["input"])
+
+
     
     # print("History:", history_msgs)
-    response = runnable.invoke({"history": history_msgs, "input": state["input"], "emotion": state.get("emotion", "others")})
+    response = runnable.invoke({"history": history_msgs,
+                                "input": state["input"], 
+                                "emotion": state.get("emotion", "others"),
+                               "chroma_context": rag_context 
+                               })
     state["messages"].append({"role": "assistant", "content": response})
+
+
+
     return state
 
 
@@ -61,15 +85,20 @@ graph.set_finish_point("chatbot")
 
 chatbot_graph = graph.compile()
 
-def response_chatbot( message: str, chat_memory: List[ChatHistory]) -> Dict[str, str]:
+def response_chatbot( message: str, chat_memory: List[ChatHistory], user_id: str ="default_user") -> Dict[str, str]:
     """
     Función para obtener la respuesta del chatbot.
     """
     emotion = analyze_emotion(message)
     print(f"Emoción detectada: {emotion}")
+    print(f"User ID: {user_id}")
     
     # Lógica del servicio: interactuar con el modelo de lenguaje
-    state = {"messages": chat_memory, "input": message, "emotion": emotion}
+    state = {"messages": chat_memory, 
+            "input": message,
+            "emotion": emotion,
+            "user_id": user_id
+            }
     new_state = chatbot_graph.invoke(state)
     return {'response': new_state["messages"][-1]["content"],
             'emotion': emotion
