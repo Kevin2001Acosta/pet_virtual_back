@@ -10,3 +10,4 @@ class User(Base):
     password = Column(String, nullable=False)
     
     chat_history = relationship("ChatHistory", back_populates="user")
+    profile = relationship("UserProfile", back_populates="user")

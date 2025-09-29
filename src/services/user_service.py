@@ -48,12 +48,15 @@ def verify_token(token: str, type: TokenType) -> dict:
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        if payload.get("type") != type:
+        if payload.get("type") != type.value:
+            print('Tipo de token inválido')
             return {"success": False, "message": "Tipo de token inválido", "data": None}
         return {"success": True, "message": "Token válido", "email": payload.get("sub")}  
     except jwt.ExpiredSignatureError:
+        print('El token ha expirado')
         return {"success": False, "message": "El token ha expirado", "data": None}
     except jwt.InvalidTokenError:
+        print('Token inválido')
         return {"success": False, "message": "Token inválido", "data": None}
 
 def update_user_password(db: Session, user: User, new_password: str) -> User:
