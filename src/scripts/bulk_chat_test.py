@@ -9,7 +9,7 @@ df = pd.read_excel(excel_path)
 
 # Endpoint de tu API
 url = 'http://localhost:8000/chatbot/chat'
-email = "ke16acosta@gmail.com"  # Cambia por el email de prueba
+email = "monica23@gmail.com"  # Cambia por el email de prueba
 
 # Iterar sobre las preguntas y guardar la respuesta en la columna
 for idx, row in df.iterrows():
@@ -20,7 +20,7 @@ for idx, row in df.iterrows():
         respuesta_bot = response.json().get('response', '')
     else:
         respuesta_bot = f"Error: {response.status_code}"
-    df.at[idx, 'Respuesta_sin_RAG'] = str(respuesta_bot)
+    df.at[idx, 'Con_Chorma'] = str(respuesta_bot)
 
 # Guardar el DataFrame actualizado en un nuevo archivo
 df.to_excel('src/rag_system/excel_test/preguntas_con_respuestas.xlsx', index=False)

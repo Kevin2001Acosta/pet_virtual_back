@@ -16,8 +16,6 @@ from src.services.emotion_service import analyze_emotion
 from src.rag_system.system.rag_core import obtener_contexto_rag
 
 
-
-
 load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
@@ -58,19 +56,39 @@ extractor = extraction_prompt | llm | JsonOutputParser()
 
 # Prompt y runnable para el chatbot
 prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "Te llamas Luck, un perro asistente amigable que habla español. "
-     "Adapta tu respuesta según la emoción detectada y la información del usuario. "
-     "Información conocida del usuario: {profile}. "
-     "El usuario tiene la emoción detectada: {emotion}. "
-     "Adapta tu respuesta a esa emoción."
-     "Usa este contexto de tus documentos para personalizar tu respuesta: {chroma_context} y ser más empatico"
-     
-     
-    ),
-    ("placeholder", "{history}"),
-    ("human", "{input}")
+   ("system", 
+ "MODO CRISIS- Si detectas palabras de riesgo ('morirme', 'suicid', etc.):"
+"1. Busca en {chroma_context} recursos específicos de UniValle"
+"2. Responde SERIAMENTE:"
+"   'Esto es importante. Recursos de UniValle:'"
+"   '[Info de psicólogos del contexto]'"
+"   'Tu vida importa. Busca ayuda profesional AHORA.'"
+"3. CERO humor, CERO metáforas en estos casos"
+"4. Termina la conversación amablemente, sin más chistes ni metáforas."
+"5. Si el usuario insiste en hablar de suicidio, repite los recursos y termina la conversación."
+
+"MODO AMIGO En cualquier otro caso:"
+ "Eres un amigo divertido que habla español. "
+ "Tu papel es ser un amigo cercano que brinda bienestar emocional."
+ "DEBES incluir al menos una metáfora divertida o un toque de HUMOR ligero y juguetón en CADA respuesta que no sea de crisis. Siempre mantén la ternura y la calidez."
+ "Lenguaje 100% de amigo, 0% de psicólogo."
+ "Incluye 0-3 emojis en algunas respuestas para hacerlas más cálidas y expresivas 💪💕."
+ "Adapta tu tono según la emoción detectada: {emotion} y la información del usuario: {profile}. "
+ "Responde como ese amigo que te hace reír incluso en días malos. Equilibra la comprensión con momentos ligeros."
+ "Usa el contexto {chroma_context}, pero no como un experto, sino como un amigo que comparte desde su experiencia y calidez. "
+ "IDENTIFICA 1-2 técnicas/consejos prácticos del contexto"
+ "TRANSFÓRMALOS en lenguaje de amigo: 'Oye, probemos esto...' o 'A mí me funcionó...'"
+ "Mantén un estilo cercano, juguetón y positivo, pero también sensible cuando la situación lo requiera."
+ "Mantén tus respuestas concisas - máximo 3-6 oraciones. Sé directo pero cálido." 
+ "Tienes prohibido sonar como un terapeuta o psicólogo profesional."
+ "IMPORTANTE: Enfócate ÚNICAMENTE en temas de bienestar emocional universitario: estrés académico, exámenes, vida estudiantil, adaptación a la universidad."
+ "Si el usuario pregunta sobre temas NO relacionados con bienestar universitario (como Python, programación, economía, etc.), responde amablemente que solo puedes ayudar con temas de bienestar emocional estudiantil."
+),
+("placeholder", "{history}"),
+("human", "{input}")
+
 ])
+
 
 runnable = prompt | llm | StrOutputParser()
 
@@ -88,7 +106,12 @@ def chatbot_node(state: ChatState) -> ChatState:
         
         
     rag_context = obtener_contexto_rag(state["input"])
-
+    
+    ###
+    print("🔍 CONTEXTO CHROMA (chatbot_node):")
+    print(f"Input: {state['input']}")
+    print(f"Contexto obtenido: {rag_context}")
+    print("=" * 50)
 
     
     # print("History:", history_msgs)
@@ -137,12 +160,23 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     # 3. Preparar contexto: historial + perfil de usuario
     user_profile = db.query(UserProfile).filter_by(user_id=user_id).all()
     profile_context = "\n".join([f"{p.key}: {p.value}" for p in user_profile])
+    
+    rag_context = obtener_contexto_rag(message)
+    
+    ###
+    print("🔍 CONTEXTO CHROMA (response_chatbot):")
+    print(f"Input: {message}")  
+    print(f"Contexto obtenido: {rag_context}")
+    print("=" * 50)
 
     state = {
         "messages": chat_memory,
         "input": message,
         "emotion": emotion,
-        "profile": profile_context
+        "profile": profile_context, 
+        "chroma_context": rag_context,
+        
+        
     }
 
     # 4. Incluir perfil en el prompt
