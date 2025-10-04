@@ -34,10 +34,10 @@ class ChromaRetriever:
         separators=["\n\n", "\n", " ", ""] 
     )
     
-    # 2. Divide el texto. 'texts' AHORA CONTIENE TODOS TUS CHUNKS FINALES
+    # 2. Divide el texto. 
         final_chunks = splitter.split_text(text)
     
-    # 3. Filtra chunks muy pequeños (opcional pero recomendado)
+    # 3. Filtra chunks muy pequeños 
         documents = [c.strip() for c in final_chunks if len(c.strip()) > 50] 
     
     # --- 2. GENERACIÓN DE METADATOS ---
@@ -53,7 +53,6 @@ class ChromaRetriever:
                 'longitud': len(chunk) 
             })
             
-    # --- 3. IMPRESIÓN Y RETORNO ---
         print(f"  - Chunks creados: {len(documents)} (tamaño avg: {sum(len(d) for d in documents)//len(documents) if documents else 0})")
 
         return documents, metadata
