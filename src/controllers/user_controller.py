@@ -67,11 +67,25 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     user_obj = authenticate_user(db, user.email, user.password)
     if not user_obj:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-    return {"message": "Login exitoso",
-            "pass": True,
-            "user_id": user_obj.id}
     
+    token = create_token(
+        email=user.email,
+        expires_minutes=10080,  
+        type=TokenType.ACCESS   
+    )
 
+    return {
+        "message": "Login exitoso",
+        "success": True,  
+        "user_id": user_obj.id,
+        "token": token,
+        "user": {               
+            "id": user_obj.id,
+            "name": user_obj.name,
+            "email": user_obj.email
+        }
+    }  
+    
 
 backendUrl = os.getenv("BACKEND_URL")
 
