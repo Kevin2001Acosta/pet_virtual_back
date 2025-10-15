@@ -41,7 +41,7 @@ def create_token(email: str, expires_minutes: int = 15, type: TokenType = TokenT
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
-def verify_token(token: str, type: TokenType = None) -> dict: 
+def verify_token(token: str, type: TokenType) -> dict: 
     """
     Verifica el token recibido y su tipo. Devuelve dict indicando éxito,
     motivo y data relevante (por ejemplo: email en 'sub').

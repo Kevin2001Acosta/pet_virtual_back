@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
+from src.models.enums import TokenType
+from src.services.user_service import verify_token
 from src.models.chatbot_model import ChatRequest
 from src.services.langchain_service import response_chatbot
 from src.database.db import SessionLocal
@@ -18,13 +20,13 @@ def get_db():
 
 
 @router.post("/chat")
-def chat(request: ChatRequest, db: Session = Depends(get_db)):
+def chat(request: ChatRequest, db: Session = Depends(get_db), Authorization: str = Header(...)):
     """
     Responde a un mensaje del usuario utilizando el servicio de chatbot.
     
 
     Args:
-        request (ChatRequest): The request information to question (message, email).
+        request (ChatRequest): The request information to question (message, token).
         db (Session, optional): database. Defaults to Depends(get_db).
 
     Raises:
@@ -36,9 +38,20 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         """
     
     # TODO: La validación del usuario y extracción del historial debería hacerse en services
-    # TODO: La validación del usuario debería hacerse con JWT y OAuth2 o algo así
+
+    if not Authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
+
+    token: str = Authorization.split(" ")[1]
+
+    # Verificar el token y extraer el email
+    result = verify_token(token, TokenType.ACCESS)
     
-    user = db.query(User).filter_by(email=request.email).first()
+    if not result.get("success"):
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    email = result.get("email")
+
+    user = db.query(User).filter_by(email=email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -68,7 +81,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
             "chat_id": chat_entry.id}
 
 @router.get("/chat/history")
-def get_chat_history(email: str, db: Session = Depends(get_db)):
+def get_chat_history(db: Session = Depends(get_db), Authorization: str = Header(...)):
     """
     Obtiene el historial de chat de un usuario por su correo electrónico.
     envía el email como parametro de consulta: '/chat/history?email=usuario@email.com'
@@ -83,8 +96,25 @@ def get_chat_history(email: str, db: Session = Depends(get_db)):
     Returns:
         dict: A list of chat history entries for the user.
     """
+    
+    if not Authorization.startswith("Bearer "):
+        print("Entró en no empieza con Bearer")
+        raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
+
+    token: str = Authorization.split(" ")[1]
+
+    # Verificar el token y extraer el email
+    result = verify_token(token, TokenType.ACCESS)
+
+    if not result.get("success"):
+        print("No es exitoso")
+        raise HTTPException(status_code=401, detail=result.get("message"))
+    
+    email = result.get("email")
+
     user = db.query(User).filter_by(email=email).first()
     if not user:
+        print("No encontró usuario")
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     history = db.query(ChatHistory).filter_by(user_id=user.id).order_by(ChatHistory.timestamp.asc()).all()
