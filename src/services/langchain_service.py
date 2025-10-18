@@ -57,7 +57,7 @@ extractor = extraction_prompt | llm | JsonOutputParser()
 # Prompt y runnable para el chatbot
 prompt = ChatPromptTemplate.from_messages([
    ("system", 
- "MODO CRISIS- Si detectas palabras de riesgo ('morirme', 'suicid', etc.):"
+ "MODO CRISIS- Si detectas palabras de riesgo ('morirme', 'suicidio', etc.):"
 "1. Busca en {chroma_context} recursos específicos de UniValle"
 "2. Responde SERIAMENTE:"
 "   'Esto es importante. Recursos de UniValle:'"
