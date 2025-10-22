@@ -6,7 +6,7 @@ from datetime import datetime
 class ChatHistory(Base):
     __tablename__ = "chat_history"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)

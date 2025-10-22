@@ -29,7 +29,7 @@ class ChromaRetriever:
     
     # 1. Configura el separador
         splitter = RecursiveCharacterTextSplitter(
-        chunk_size=750,       
+        chunk_size=600,       
         chunk_overlap=100,     
         separators=["\n\n", "\n", " ", ""] 
     )
@@ -87,9 +87,11 @@ class ChromaRetriever:
     def buscar_documentos(self, query: str, n_results: int = 3):
    
         try:
-            results = self.vector_store.search(query, n_results * 2)
+            results = self.vector_store.search(query, n_results)
+            print(results)
             
             print(f"Estructura results: {list(results.keys())}")
+            print("Fin estructura")
                         
             if results['documents'] and len(results['documents']) > 0:
 

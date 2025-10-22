@@ -7,7 +7,8 @@ class ChromaVectorStore:
     def __init__(self, persist_directory: str = "./chroma_db"):
         self.client = chromadb.PersistentClient(path=persist_directory)
         self.collection = self.client.get_or_create_collection("conocimiento_mascota")
-        self.embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        # paraphrase-multilingual-MiniLM-L12-v2
+        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
     
     def add_documents(self, documents: list, metadata: list = None):
         
