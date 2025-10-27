@@ -23,7 +23,7 @@ api_key = os.getenv("GROQ_API_KEY")
 
 # Definir el estado del grafo
 class ChatState(Dict[str, Any]):
-    messages: List[Dict[str, str]]  # Lista de mensajes en el chat
+    messages: List[ChatHistory]  # Lista de mensajes en el chat
     input: str
     
     user_id: str #Nueva
@@ -40,7 +40,7 @@ extraction_prompt = ChatPromptTemplate.from_messages([
      "Eres un asistente que extrae información personal relevante del usuario. "
      "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes del USUARIO solamente, NO del asistente, "
      "Responde ÚNICAMENTE con un JSON válido. No escribas nada fuera del JSON. con los campos extraídos."
-     "Si no hay información relevante, devuelve un JSON vacío {{}}."
+     "Si no hay información relevante, devuelve un JSON vacío '{}'."
      "Ejemplo de que no debes hacer: {{'nombre': 'no especificado'}}"
      "Si el nombre o cualquier dato no fué especificado solo entrega un JSON vacío."
      "Solo quiero que entregues la info del usuario, que toda esté especificada."
@@ -65,7 +65,7 @@ prompt = ChatPromptTemplate.from_messages([
 "   'Tu vida importa. Busca ayuda profesional AHORA.'"
 "3. CERO humor, CERO metáforas en estos casos"
 "4. Termina la conversación amablemente, sin más chistes ni metáforas."
-"5. Si el usuario insiste en hablar de suicidio, repite los recursos y termina la conversación."
+"5. Si el usuario insiste en hablar de suicidio, repite los recursos y termina la conversación.\n\n"
 
 "MODO AMIGO En cualquier otro caso:"
  "Eres un amigo divertido que habla español. "
@@ -99,18 +99,19 @@ runnable = prompt | llm | StrOutputParser()
 def chatbot_node(state: ChatState) -> ChatState:
     history_msgs: List[Any] = []
     
+    # Mapeando datos del historial a base de IA
     for chat in state.get("messages", []):
         history_msgs.append(HumanMessage(content=chat.question))
         history_msgs.append(AIMessage(content=chat.answer))
         
         
         
-    rag_context = obtener_contexto_rag(state["input"])
+    # rag_context = obtener_contexto_rag(state["input"])
     
     ###
     print("🔍 CONTEXTO CHROMA (chatbot_node):")
     print(f"Input: {state['input']}")
-    print(f"Contexto obtenido: {rag_context}")
+    print(f"Contexto obtenido: {state.get('chroma_context', '')}")
     print("=" * 50)
 
     
@@ -118,7 +119,7 @@ def chatbot_node(state: ChatState) -> ChatState:
     response = runnable.invoke({"history": history_msgs,
                                 "input": state["input"], 
                                 "emotion": state.get("emotion", "others"),
-                               "chroma_context": rag_context 
+                               "chroma_context": state.get("chroma_context", "")
                                })
     state["messages"].append({"role": "assistant", "content": response})
 
@@ -164,10 +165,12 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     rag_context = obtener_contexto_rag(message)
     
     ###
+    """
     print("🔍 CONTEXTO CHROMA (response_chatbot):")
     print(f"Input: {message}")  
     print(f"Contexto obtenido: {rag_context}")
-    print("=" * 50)
+    print("=" * 50) 
+    """
 
     state = {
         "messages": chat_memory,
@@ -180,6 +183,6 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     }
 
     # 4. Incluir perfil en el prompt
-    response = runnable.invoke(state)
-
+    final_state = chatbot_graph.invoke(state)
+    response = final_state["messages"][-1]["content"]  # último mensaje del asistente
     return {"response": response, "emotion": emotion}
