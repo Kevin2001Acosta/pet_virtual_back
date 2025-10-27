@@ -23,8 +23,11 @@ api_key = os.getenv("GROQ_API_KEY")
 
 # Definir el estado del grafo
 class ChatState(Dict[str, Any]):
-    messages: List[ChatHistory]  # Lista de mensajes en el chat
+    messages: List[ChatHistory | Dict]  # Lista de mensajes en el chat
     input: str
+    emotion: str
+    profile: str
+    chroma_context: str
     
     user_id: str #Nueva
     
@@ -109,19 +112,22 @@ def chatbot_node(state: ChatState) -> ChatState:
     # rag_context = obtener_contexto_rag(state["input"])
     
     ###
-    print("🔍 CONTEXTO CHROMA (chatbot_node):")
+    """ print("🔍 CONTEXTO CHROMA (chatbot_node):")
     print(f"Input: {state['input']}")
-    print(f"Contexto obtenido: {state.get('chroma_context', '')}")
-    print("=" * 50)
+    print("=" * 50) """
 
     
     # print("History:", history_msgs)
     response = runnable.invoke({"history": history_msgs,
                                 "input": state["input"], 
                                 "emotion": state.get("emotion", "others"),
-                               "chroma_context": state.get("chroma_context", "")
+                               "chroma_context": state.get("chroma_context", ""),
+                               "profile": state.get("profile", "")
                                })
     state["messages"].append({"role": "assistant", "content": response})
+
+    print(f"Contexto obtenido: {state.get('chroma_context', '')}")
+    print(f"mensajes: {state['messages']}")
 
 
 
@@ -161,25 +167,14 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     # 3. Preparar contexto: historial + perfil de usuario
     user_profile = db.query(UserProfile).filter_by(user_id=user_id).all()
     profile_context = "\n".join([f"{p.key}: {p.value}" for p in user_profile])
-    
-    rag_context = obtener_contexto_rag(message)
-    
-    ###
-    """
-    print("🔍 CONTEXTO CHROMA (response_chatbot):")
-    print(f"Input: {message}")  
-    print(f"Contexto obtenido: {rag_context}")
-    print("=" * 50) 
-    """
 
+    rag_context: str = obtener_contexto_rag(message)
     state = {
         "messages": chat_memory,
         "input": message,
         "emotion": emotion,
         "profile": profile_context, 
         "chroma_context": rag_context,
-        
-        
     }
 
     # 4. Incluir perfil en el prompt

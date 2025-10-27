@@ -10,7 +10,7 @@ df = pd.read_excel(excel_path)
 
 # Endpoint de tu API
 url = 'http://localhost:8000/chatbot/chat'
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJrZTE2YWNvc3RhQGdtYWlsLmNvbSIsImV4cCI6MTc2MTE1NDgyOSwidHlwZSI6ImFjY2VzcyJ9.sU_6DPQN_I79TdVCDPpfsyup7jYXAqLKEsL5awr38-k"  # Cambia por el email de prueba
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJrZTE2YWNvc3RhQGdtYWlsLmNvbSIsImV4cCI6MTc2MjE5MjM5MCwidHlwZSI6ImFjY2VzcyJ9.UNyP9VkUPbzFeG8JaFzBUjBI6TMqmFO8SrVa6HVETK8"  # Cambia por el email de prueba
 
 headers = {'Authorization': f'Bearer {token}'}
 
@@ -31,8 +31,8 @@ for idx, row in df.iterrows():
         respuesta_bot = f"Error: {response.status_code}"
         
     
-    df.at[idx, 'test2_chroma'] = str(respuesta_bot)
-    df.at[idx, 'tiempo_test2_chroma'] = tiempo_respuesta
+    df.at[idx, 'test3'] = str(respuesta_bot)
+    df.at[idx, 'tiempo_test3'] = tiempo_respuesta
 
 # Guardar el DataFrame actualizado en un nuevo archivo
 df.to_excel('src/rag_system/excel_test/test2.xlsx', index=False)

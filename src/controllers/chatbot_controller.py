@@ -98,7 +98,6 @@ def get_chat_history(db: Session = Depends(get_db), Authorization: str = Header(
     """
     
     if not Authorization.startswith("Bearer "):
-        print("Entró en no empieza con Bearer")
         raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
 
     token: str = Authorization.split(" ")[1]
@@ -107,14 +106,12 @@ def get_chat_history(db: Session = Depends(get_db), Authorization: str = Header(
     result = verify_token(token, TokenType.ACCESS)
 
     if not result.get("success"):
-        print("No es exitoso")
         raise HTTPException(status_code=401, detail=result.get("message"))
     
     email = result.get("email")
 
     user = db.query(User).filter_by(email=email).first()
     if not user:
-        print("No encontró usuario")
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     history = db.query(ChatHistory).filter_by(user_id=user.id).order_by(ChatHistory.timestamp.asc()).all()
