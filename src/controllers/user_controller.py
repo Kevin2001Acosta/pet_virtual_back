@@ -140,16 +140,13 @@ def reset_password_confirm(request: changePasswordRequest, db: Session = Depends
     Returns:
         dict: A message indicating that the password has been reset successfully.
     """
-    print(request.token)
     result = verify_token(request.token, TokenType.RESET_PASSWORD)
     success = result.get("success")
     if not success:
-        print('Token inválido o expirado')
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
     email = result.get("email")
     user = db.query(User).filter_by(email=email).first()
     if not user:
-        print('Usuario no encontrado')
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     user = update_user_password(db, user, request.new_password)
