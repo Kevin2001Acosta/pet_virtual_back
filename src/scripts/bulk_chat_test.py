@@ -10,7 +10,7 @@ df = pd.read_excel(excel_path).fillna('')
 
 # Endpoint de tu API
 url = 'http://localhost:8000/chatbot/chat'
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb25pY2EyM0BnbWFpbC5jb20iLCJleHAiOjE3NjI0NjgyMjYsInR5cGUiOiJhY2Nlc3MifQ.rNtNLi0IbYQMyuS5iU2dSLL1dLdw7qGHd8Le3ugizD0"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJrZTE2YWNvc3RhQGdtYWlsLmNvbSIsImV4cCI6MTc2MjcyODk0NywidHlwZSI6ImFjY2VzcyJ9.VtPucWItTMr6yW_pt9i4zDA_I612ebC70Uo6p88Clas"
 headers = {'Authorization': f'Bearer {token}'}
 
 # Iterar sobre las preguntas y guardar la respuesta en la columna
@@ -26,12 +26,14 @@ for idx, row in df.iterrows():
     
     if response.ok:
         respuesta_bot = response.json().get('response', '')
+        emotion = response.json().get('emotion', '')
     else:
         respuesta_bot = f"Error: {response.status_code}"
+        emotion="Error"
         
     
-    df.at[idx, 'test5'] = str(respuesta_bot)
-    df.at[idx, 'tiempo_test5'] = tiempo_respuesta
+    df.at[idx, 'test6'] = str(respuesta_bot)
+    df.at[idx, 'emotion_test6'] = emotion
 
 # Guardar el DataFrame actualizado en un nuevo archivo
 df.to_excel('src/rag_system/excel_test/test2.xlsx', index=False)

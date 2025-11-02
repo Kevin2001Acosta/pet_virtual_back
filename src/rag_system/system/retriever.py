@@ -2,7 +2,7 @@
 import os
 from pypdf import PdfReader
 from .vector import vector_store
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class ChromaRetriever:
     def __init__(self):

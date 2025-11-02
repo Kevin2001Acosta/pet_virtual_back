@@ -9,6 +9,7 @@ class ChatHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
+    emotion = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="chat_history")
