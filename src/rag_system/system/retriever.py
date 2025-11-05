@@ -88,15 +88,9 @@ class ChromaRetriever:
    
         try:
             results = self.vector_store.search(query, n_results)
-            #print(results)
-            
-            #print(f"Estructura results: {list(results.keys())}")
-            #print("Fin estructura")
                         
             if results['documents'] and len(results['documents']) > 0:
-                #print(f"documentos: {results['documents']}")
-
-                documentos = results['documents'][0] 
+                documentos = results['documents'][0]
                 
                 #metadatos = results['metadatas'][0] if results['metadatas'] else []
                 

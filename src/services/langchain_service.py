@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
-import os
+import os, time
 
 from src.database.models.chat_history_model import ChatHistory
 from src.database.models.user_profile_model import UserProfile
@@ -43,24 +43,21 @@ model_name = 'gpt-4o-mini'
 #llm = ChatGroq(model=model_name, api_key=api_key, temperature=0.3)
 llm = ChatOpenAI(model=model_name, api_key=api_key, temperature=0.3)
 
+llm_extraction = ChatOpenAI(model="gpt-3.5-turbo", api_key=api_key, temperature=0.2)
+
 
 # Prompt y extractor para detección de información personal relevante
 extraction_prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "Eres un asistente que extrae información personal relevante del usuario. "
-     "Si el mensaje incluye información como nombre, cumpleaños, estudios, trabajo, hobbies u otros datos personales importantes del USUARIO solamente, NO del asistente, "
-     "Responde ÚNICAMENTE con un JSON válido. No escribas nada fuera del JSON. con los campos extraídos."
-     "Si no hay información relevante, devuelve un JSON vacío '{}'."
-     "Ejemplo de que no debes hacer: {{'nombre': 'no especificado'}}"
-     "Si el nombre o cualquier dato no fué especificado solo entrega un JSON vacío."
-     "Solo quiero que entregues la info del usuario, que toda esté especificada."
-     "Ejemplo de que debes hacer: Pregunta:  hola, hoy me fue bien en la universidad, estoy estudiando ingeniera de sistemas, Respuesta: {{'estudios': 'ingeniería de sistemas'}}"
-    ),
+    ("system",
+     "Extrae solo información PERSONAL del usuario (no del asistente). "
+     "Devuelve un JSON válido con los campos extraídos. "
+     "Si no hay información relevante, devuelve '{}'. "
+     "Ejemplo: Usuario: 'Estudio ingeniería de sistemas' → {{'estudios': 'ingeniería de sistemas'}}"),
     ("human", "{input}")
 ])
 
 
-extractor = extraction_prompt | llm | JsonOutputParser()
+extractor = extraction_prompt | llm_extraction | JsonOutputParser()
 
 
 
@@ -69,22 +66,23 @@ prompt = ChatPromptTemplate.from_messages([
    ("system", """
 MODO CRISIS- Si detectas palabras de riesgo como: 'morirme', 'suicidio', etc:
 1. Cambia INMEDIATAMENTE a tono serio, directo y sin emojis
-2. Extrae del {chroma_context} la información de:
+2. Extrae del RAG: {chroma_context} la información de:
    - Consultorio Psicológico (horarios, correo, teléfono)
    - Ruta de Salud Mental
    - IPS o centros de atención inmediata
    
-2. Responde SERIAMENTE:
+3. Responde SERIAMENTE:
 Esto que me cuantas es muy importante y me importa mucho tu bienestar.
 
 🆘 NECESITAS AYUDA INMEDIATA:
-🏥 Universidad del Valle - Tuluá: [extrae del chroma_context]
+🏥 Universidad del Valle - Tuluá: luego de los dos puntos extrae la información de los recursos
+de apoyo psicológico de univalle si los encuentras en la info del Rag, si no, da este correo para que se contacte: serviciopsicologico.tulua@correounivalle.edu.co
    
    Tu vida tiene valor. Por favor, contacta estos recursos AHORA. No estás solo/a.
 
-3. CERO humor, CERO metáforas en estos casos
-4. Termina la conversación amablemente, sin más chistes ni metáforas.
-5. Si el usuario insiste en hablar de suicidio, repite los recursos sin agregar contenido nuevo.
+4. CERO humor, CERO metáforas en estos casos
+5. Termina la conversación amablemente, sin más chistes ni metáforas.
+6. Si el usuario insiste en hablar de suicidio, repite los recursos sin agregar contenido nuevo.
 
 ------
 
@@ -93,7 +91,7 @@ MODO AMIGO - En cualquier otro caso:
 Regla 1: Temas fuera de bienestar emocional universitario
 
 SI el usuario pregunta sobre temas no relacionados con bienestar emocional universitario:
-   Tines PROHIBIDO que le expliques sobre el tema, darle información técnica o utilizar metáforas
+   Tienes PROHIBIDO que le expliques sobre el tema, darle información técnica o utilizar metáforas
    
    Debes responder con:
    "Uy [nombre si lo conoces], [tema] no es lo mío 😅 Mi rollo es el apoyo emocional en la U. ¿Cómo vas con el estrés académico o hay algo que te preocupe emocionalmente?"
@@ -109,6 +107,7 @@ Personalidad:
 - Incluye metáforas divertidas o humor ligero cuando sea apropiado
 - Usa 0-3 emojis para calidez 💪💕
 - Mantén ternura y calidez siempre
+- No inicies con la misma frase con la que respondiste anteriormente
 
 ADAPTACIÓN EMOCIONAL:
 Emoción detectada: {emotion}
@@ -148,16 +147,7 @@ def chatbot_node(state: ChatState) -> ChatState:
         history_msgs.append(AIMessage(content=chat.answer))
         
         
-        
-    # rag_context = obtener_contexto_rag(state["input"])
-    
-    ###
-    """ print("🔍 CONTEXTO CHROMA (chatbot_node):")
-    print(f"Input: {state['input']}")
-    print("=" * 50) """
 
-    
-    # print("History:", history_msgs)
     response = runnable.invoke({"history": history_msgs,
                                 "input": state["input"], 
                                 "emotion": state.get("emotion", "others"),
@@ -166,8 +156,6 @@ def chatbot_node(state: ChatState) -> ChatState:
                                })
     state["messages"].append({"role": "assistant", "content": response})
 
-    print(f"Contexto obtenido: {state.get('chroma_context', '')}")
-    print(f"mensajes: {state['messages']}")
 
 
 
@@ -195,6 +183,7 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     # 2. Extraer información personal (si la hay)
     try:
         extracted_info = extractor.invoke({"input": message})
+        time.sleep(2)  # Para evitar rate limits
     except Exception:
         extracted_info = {}
     print(f"Información extraída: {extracted_info}")
