@@ -4,6 +4,7 @@ from typing import Dict, List, Any
 from langchain_openai import ChatOpenAI
 
 
+from langchain_groq import ChatGroq
 from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
@@ -37,7 +38,7 @@ class ChatState(Dict[str, Any]):
 
     user_id: str  # Nueva
 
-
+ 
 model_name = 'gpt-4o-mini'
 #model_name = 'llama-3.1-8b-instant'
 #llm = ChatGroq(model=model_name, api_key=api_key, temperature=0.3)
