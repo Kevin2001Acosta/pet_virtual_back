@@ -18,9 +18,9 @@ def get_password_hash(password):
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def create_user(db: Session, name: str, email: str, password: str):
+def create_user(db: Session, name: str, email: str, password: str, petName: str) -> User:
     hashed_password = get_password_hash(password)
-    user = User(name=name, email=email, password=hashed_password)
+    user = User(name=name, email=email, password=hashed_password, petName=petName)
     db.add(user)
     db.commit()
     db.refresh(user)
