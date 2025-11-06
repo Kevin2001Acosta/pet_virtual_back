@@ -87,8 +87,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db), Authorization: str
 @router.get("/chat/history")
 def get_chat_history(db: Session = Depends(get_db), Authorization: str = Depends(api_key_header)):
     """
-    Obtiene el historial de chat de un usuario por su correo electrónico.
-    envía el email en el token de autorización.
+    Obtiene el historial de chat de un usuario y el nombre de la mascota por su correo electrónico.
+    recibe el email en el token de autorización.
 
     Args:
         token (str): The authorization token.
@@ -119,14 +119,14 @@ def get_chat_history(db: Session = Depends(get_db), Authorization: str = Depends
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     history = db.query(ChatHistory).filter_by(user_id=user.id).order_by(ChatHistory.timestamp.asc()).all()
-    return [
+    return {"history": [
         {
             "question": chat.question,
             "answer": chat.answer,
             "timestamp": chat.timestamp
         }
         for chat in history
-    ]
+    ], "pet_name": user.petName}
 
 
 @router.get("/chat/emotion-status")
