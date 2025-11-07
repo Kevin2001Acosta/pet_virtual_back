@@ -7,9 +7,15 @@ from src.database.db import SessionLocal
 from sqlalchemy.orm import Session
 from src.database.models.user_model import User
 from src.database.models.chat_history_model import ChatHistory
-from src.services.emotion_service import calculate_emotional_status
+from src.services.emotion_service import calculate_emotional_status, calculate_weekly_emotional_levels
 from fastapi.security import APIKeyHeader
+from datetime import datetime, timedelta
+from fastapi import Query
+import locale
 
+
+# Configurar el idioma para los días de la semana en español
+locale.setlocale(locale.LC_TIME, "es_ES.UTF-8")
 
 router = APIRouter()
 
@@ -174,3 +180,59 @@ def get_emotion_status(db: Session = Depends(get_db), Authorization: str = Depen
     emotional_status = calculate_emotional_status(history)
 
     return emotional_status
+
+@router.get("/chat/emotion-weekly-status")
+def get_weekly_emotion_levels(
+    start_date: str = Query(..., description="Fecha inicial en formato YYYY-MM-DD"),
+    end_date: str = Query(..., description="Fecha final en formato YYYY-MM-DD"),
+    db: Session = Depends(get_db),
+    Authorization: str = Depends(api_key_header),
+):
+    """
+    Obtiene el resumen semanal de emociones del usuario entre dos fechas específicas.
+    Devuelve un string con el nivel emocional para cada día de la semana.
+    """
+    if not Authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
+
+    token: str = Authorization.split(" ")[1]
+
+    # Verificar el token y extraer el email
+    result = verify_token(token, TokenType.ACCESS)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=401, detail=result.get("message"))
+
+    email = result.get("email")
+
+    user = db.query(User).filter_by(email=email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Convertir las fechas de string a objetos datetime
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD.")
+
+    if start_date_obj > end_date_obj:
+        raise HTTPException(status_code=400, detail="La fecha inicial no puede ser posterior a la fecha final.")
+
+    # Filtrar el historial de chat del usuario para las fechas dadas
+    history = (
+        db.query(ChatHistory)
+        .filter(
+            ChatHistory.user_id == user.id,
+            ChatHistory.timestamp >= start_date_obj,
+            ChatHistory.timestamp <= end_date_obj,
+            ChatHistory.emotion.isnot(None),
+        )
+        .order_by(ChatHistory.timestamp.asc())
+        .all()
+    )
+
+    # Calcular los niveles emocionales semanales utilizando la nueva función
+    emotional_levels = calculate_weekly_emotional_levels(history, start_date_obj, end_date_obj)
+
+    return emotional_levels

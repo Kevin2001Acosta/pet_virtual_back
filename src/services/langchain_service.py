@@ -175,6 +175,12 @@ chatbot_graph = graph.compile()
 def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int, db: Session) -> Dict[str, str]:
     """
     Función para obtener la respuesta del chatbot, extraer información personal y guardar en la base de datos.
+    
+    Args:
+       message: El mensaje del usuario.
+       chat_memory: El historial de chat.
+       user_id: El ID del usuario.
+       db: La sesión de la base de datos.
     """
     # 1. Detectar emoción
     emotion = analyze_emotion(message)
