@@ -83,7 +83,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             "id": user_obj.id,
             "name": user_obj.name,
             "email": user_obj.email,
-            "petName": user_obj.petName
+            "petName": user_obj.petName,
+            "create_at": user_obj.create_at
         }
     }  
     

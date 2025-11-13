@@ -49,6 +49,9 @@ def calculate_emotional_status(history) -> dict:
     else:
         return {"status": "verde", "detail": f"El {negative_percentage:.2f}% de las emociones son negativas."}
 
+
+
+
 def calculate_weekly_emotional_levels(history, start_date_obj, end_date_obj):
     """
     Calcula los niveles emocionales para cada día de un rango de fechas, especialmente una semana.
