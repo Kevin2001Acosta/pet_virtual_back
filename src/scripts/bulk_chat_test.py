@@ -32,8 +32,12 @@ for idx, row in df.iterrows():
         emotion="Error"
         
     
-    df.at[idx, 'test6'] = str(respuesta_bot)
-    df.at[idx, 'emotion_test6'] = emotion
+    df.at[idx, 'test7'] = str(respuesta_bot)
+    df.at[idx, 'emotion_test7'] = emotion
+
+    # Espera 1 segundo entre cada petición
+    time.sleep(1)
+    
 
 # Guardar el DataFrame actualizado en un nuevo archivo
 df.to_excel('src/rag_system/excel_test/test2.xlsx', index=False)

@@ -44,7 +44,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter_by(email=user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
-    user_obj = create_user(db, user.name, user.email, user.password)
+    user_obj = create_user(db, user.name, user.email, user.password, user.petName)
     return {"message": "Usuario registrado exitosamente", "user_id": user_obj.id}
 
 
@@ -82,7 +82,9 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "user": {               
             "id": user_obj.id,
             "name": user_obj.name,
-            "email": user_obj.email
+            "email": user_obj.email,
+            "petName": user_obj.petName,
+            "create_at": user_obj.create_at
         }
     }  
     
