@@ -123,7 +123,7 @@ templates = Jinja2Templates(directory="src/templates")
 async def serve_reset_password_page(request: Request, token: str):
     return templates.TemplateResponse(
         "reset_password.html",
-        {"request": request, "token": token}
+        {"request": request, "token": token, "backend_url": backendUrl}
     )
 
 @router.put("/reset-password")
