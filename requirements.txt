@@ -1,7 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
 pydantic
 pydantic[email]
+psycopg2-binary
 sqlalchemy
 passlib[bcrypt]
 PyJWT

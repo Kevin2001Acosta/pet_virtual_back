@@ -33,3 +33,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 app.include_router(chatbot_router)
 app.include_router(user_router)
+
+# Ejecutable directo con puerto dinámico (DigitalOcean App Platform asigna PORT)
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))  # DO inyecta PORT; fallback 8000 local
+    uvicorn.run("src.main:app", host="0.0.0.0", port=port)
