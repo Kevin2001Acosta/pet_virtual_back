@@ -6,14 +6,18 @@ from src.models.user_schema import ResetPasswordRequest, UserCreate, UserLogin, 
 from src.services.user_service import create_user, authenticate_user, create_token, verify_token, update_user_password
 from src.database.db import SessionLocal
 from src.database.models.user_model import User
+from src.database.models.chat_history_model import ChatHistory
+from src.database.models.user_profile_model import UserProfile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.security import APIKeyHeader
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 
 router = APIRouter()
+api_key_header = APIKeyHeader(name="Authorization")
 
 def get_db():
     db = SessionLocal()
@@ -158,3 +162,38 @@ def reset_password_confirm(request: changePasswordRequest, db: Session = Depends
         "message": "Contraseña restablecida exitosamente",
         "Name": user.name
         }
+
+@router.delete("/delete-account")
+def delete_account(db: Session = Depends(get_db), Authorization: str = Depends(api_key_header)):
+    """
+    Elimina la cuenta del usuario y toda su información asociada (historial de chat, perfil, etc.).
+    Requiere token de autenticación Bearer.
+    """
+    if not Authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
+
+    token: str = Authorization.split(" ")[1]
+    
+    # Verificar el token
+    result = verify_token(token, TokenType.ACCESS)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    
+    email = result.get("email")
+    user = db.query(User).filter_by(email=email).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Borrar historial de chat asociado
+    db.query(ChatHistory).filter_by(user_id=user.id).delete()
+    
+    # Borrar perfil de usuario asociado
+    db.query(UserProfile).filter_by(user_id=user.id).delete()
+    
+    # Borrar el usuario
+    db.delete(user)
+    db.commit()
+    
+    return {"message": "Cuenta y datos eliminados exitosamente", "success": True}

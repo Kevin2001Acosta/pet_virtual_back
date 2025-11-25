@@ -2,6 +2,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+import logging
+
+# Configurar logging básico
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from src.routes.chatbot_route import router as chatbot_router
 from src.routes.user_route import router as user_router
@@ -15,6 +20,18 @@ app.mount("/static", StaticFiles(directory="src/static"), name="static")
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the MVC FastAPI application!"}
+
+# Middleware global para capturar cualquier error no manejado
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Error no manejado en {request.url}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Ocurrió un error interno en el servidor.",
+            "error": str(exc) # Opcional: quitar en producción si se prefiere no exponer detalles
+        }
+    )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

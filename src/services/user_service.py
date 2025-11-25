@@ -10,7 +10,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt_sha256"],
+    default="bcrypt_sha256",
+    deprecated="auto"
+)
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """Valida reglas mínimas de contraseña.
+    Reglas: longitud >=10, al menos una mayúscula, una minúscula y un dígito.
+    Retorna (ok, mensaje_error). Si ok es True, mensaje_error será cadena vacía.
+    """
+    if len(password) < 8:
+        return False, "La contraseña debe tener al menos 8 caracteres"
+    if not any(c.islower() for c in password):
+        return False, "Debe incluir al menos una letra minúscula"
+    if not any(c.isupper() for c in password):
+        return False, "Debe incluir al menos una letra mayúscula"
+    if not any(c.isdigit() for c in password):
+        return False, "Debe incluir al menos un dígito"
+    return True, ""
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -19,6 +38,9 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_user(db: Session, name: str, email: str, password: str, petName: str) -> User:
+    ok, err = validate_password(password)
+    if not ok:
+        raise ValueError(err)
     hashed_password = get_password_hash(password)
     user = User(name=name, email=email, password=hashed_password, petName=petName)
     db.add(user)
@@ -69,6 +91,9 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
     Returns:
         _type_: _user instance with updated password_
     """
+    ok, err = validate_password(new_password)
+    if not ok:
+        raise ValueError(err)
     user.password = get_password_hash(new_password)
     db.commit()
     db.refresh(user)

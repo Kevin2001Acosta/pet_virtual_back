@@ -11,11 +11,17 @@ from src.services.emotion_service import calculate_emotional_status, calculate_w
 from fastapi.security import APIKeyHeader
 from datetime import datetime, timedelta
 from fastapi import Query
-import locale
 
-
-# Configurar el idioma para los días de la semana en español
-locale.setlocale(locale.LC_TIME, "es_ES.UTF-8")
+# Mapeo manual de nombres de días de inglés a español
+DAY_NAMES_ES = {
+    "Monday": "Lunes",
+    "Tuesday": "Martes",
+    "Wednesday": "Miércoles",
+    "Thursday": "Jueves",
+    "Friday": "Viernes",
+    "Saturday": "Sábado",
+    "Sunday": "Domingo",
+}
 
 router = APIRouter()
 
@@ -235,4 +241,14 @@ def get_weekly_emotion_levels(
     # Calcular los niveles emocionales semanales utilizando la nueva función
     emotional_levels = calculate_weekly_emotional_levels(history, start_date_obj, end_date_obj)
 
-    return emotional_levels
+    # Traducir los nombres de los días a español si vienen en inglés
+    translated_levels = {}
+    for date_str, info in emotional_levels.items():
+        day_name_en = info.get("day_name", "")
+        day_name_es = DAY_NAMES_ES.get(day_name_en, day_name_en)
+        translated_levels[date_str] = {
+            **info,
+            "day_name": day_name_es,
+        }
+
+    return translated_levels

@@ -8,15 +8,11 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-SQLALCHEMY_DATABASE_URL = (
-    DATABASE_URL + "?sslmode=disable&connect_timeout=10"
-)
+# En producción, la URL ya incluye parámetros como sslmode; no concatenamos nada extra.
+engine = create_engine(DATABASE_URL)
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
-)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from src.database.models import user_model, chat_history_model
 
-Base.metadata.create_all(bind=engine)
+# No ejecutamos Base.metadata.create_all aquí para evitar conflictos con tablas ya existentes
