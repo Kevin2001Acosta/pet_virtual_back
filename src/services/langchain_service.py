@@ -69,7 +69,8 @@ def chatbot_node(state: ChatState) -> ChatState:
                                 "input": state["input"], 
                                 "emotion": state.get("emotion", "others"),
                                "chroma_context": state.get("chroma_context", ""),
-                               "profile": state.get("profile", "")
+                               "profile": state.get("profile", ""),
+                               "pet_name": state.get("pet_name", "Amigo")
                                })
     state["messages"].append({"role": "assistant", "content": response})
 
@@ -89,7 +90,7 @@ chatbot_graph = graph.compile()
 
 
 
-def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int, db: Session) -> Dict[str, str]:
+def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int, db: Session, pet_name: str = "Amigo") -> Dict[str, str]:
     """
     Función para obtener la respuesta del chatbot, extraer información personal y guardar en la base de datos.
     
@@ -127,6 +128,7 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
         "emotion": emotion,
         "profile": profile_context, 
         "chroma_context": rag_context,
+        "pet_name": pet_name,
     }
 
     # 4. Incluir perfil en el prompt

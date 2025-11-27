@@ -79,7 +79,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db), Authorization: str
     )
     
     
-    response_data = response_chatbot(request.message, history, user.id, db)
+    response_data = response_chatbot(request.message, history, user.id, db, user.petName)
     
     # Guardar el historial de chat
     chat_entry = ChatHistory(
@@ -131,6 +131,21 @@ def get_chat_history(db: Session = Depends(get_db), Authorization: str = Depends
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     history = db.query(ChatHistory).filter_by(user_id=user.id).order_by(ChatHistory.timestamp.asc()).all()
+    
+    # Si el historial está vacío, crear mensaje de bienvenida y guardarlo
+    if not history:
+        welcome_message = f"¡Hola! Soy {user.petName}, tu compañero virtual 🐾 Estoy aquí para escucharte y apoyarte en tu día a día universitario. ¿Cómo te encuentras hoy?"
+        welcome_entry = ChatHistory(
+            user_id=user.id,
+            question="[BIENVENIDA]",  # Marcador especial para indicar mensaje del sistema
+            answer=welcome_message,
+            emotion="others"
+        )
+        db.add(welcome_entry)
+        db.commit()
+        db.refresh(welcome_entry)
+        history = [welcome_entry]
+    
     return {"history": [
         {
             "question": chat.question,
