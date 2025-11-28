@@ -137,7 +137,7 @@ def get_chat_history(db: Session = Depends(get_db), Authorization: str = Depends
         welcome_message = f"¡Hola! Soy {user.petName}, tu compañero virtual 🐾 Estoy aquí para escucharte y apoyarte en tu día a día universitario. ¿Cómo te encuentras hoy?"
         welcome_entry = ChatHistory(
             user_id=user.id,
-            question="[BIENVENIDA]",  # Marcador especial para indicar mensaje del sistema
+            question="",  # String vacío para que el front no lo renderice como burbuja de usuario
             answer=welcome_message,
             emotion="others"
         )
@@ -267,3 +267,40 @@ def get_weekly_emotion_levels(
         }
 
     return translated_levels
+
+
+@router.delete("/chat/clear")
+def clear_chat_history(db: Session = Depends(get_db), Authorization: str = Depends(api_key_header)):
+    """
+    Vacía el contenido del chat del usuario (pregunta y respuesta) pero conserva
+    los registros con la emoción y fecha para las gráficas de seguimiento emocional.
+    """
+    if not Authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token de autorización no proporcionado o formato de token inválido")
+
+    token: str = Authorization.split(" ")[1]
+
+    result = verify_token(token, TokenType.ACCESS)
+
+    if not result.get("success"):
+        raise HTTPException(status_code=401, detail=result.get("message"))
+
+    email = result.get("email")
+
+    user = db.query(User).filter_by(email=email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Actualizar todas las filas del usuario: vaciar question y answer
+    updated_count = (
+        db.query(ChatHistory)
+        .filter(ChatHistory.user_id == user.id)
+        .update({"question": "", "answer": ""})
+    )
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Historial de chat vaciado exitosamente",
+        "cleared_messages": updated_count
+    }
