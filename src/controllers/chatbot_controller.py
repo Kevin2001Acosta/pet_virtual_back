@@ -9,7 +9,7 @@ from src.database.models.user_model import User
 from src.database.models.chat_history_model import ChatHistory
 from src.services.emotion_service import calculate_emotional_status, calculate_weekly_emotional_levels
 from fastapi.security import APIKeyHeader
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import Query
 
 # Mapeo manual de nombres de días de inglés a español

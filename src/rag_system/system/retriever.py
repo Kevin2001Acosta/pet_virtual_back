@@ -108,6 +108,6 @@ class ChromaRetriever:
 # Instancia global
 retriever = ChromaRetriever()
 
-def buscar_documentos(query: str):
+def get_documents_by_query(query: str):
     return retriever.buscar_documentos(query, n_results=3)
 

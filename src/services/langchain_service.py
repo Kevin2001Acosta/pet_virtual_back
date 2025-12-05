@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from src.services.emotion_service import analyze_emotion
 
 
-from src.rag_system.system.rag_core import obtener_contexto_rag
+from src.rag_system.system.rag_core import get_context_rag
 
 
 load_dotenv()
@@ -121,7 +121,7 @@ def response_chatbot(message: str, chat_memory: List[ChatHistory], user_id: int,
     user_profile = db.query(UserProfile).filter_by(user_id=user_id).all()
     profile_context = "\n".join([f"{p.key}: {p.value}" for p in user_profile])
 
-    rag_context: str = obtener_contexto_rag(message)
+    rag_context: str = get_context_rag(message)
     state = {
         "messages": chat_memory,
         "input": message,

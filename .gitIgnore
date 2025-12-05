@@ -28,3 +28,9 @@ test-output/
 .cpython-*.pyc
 # Ignore __pycache__ directories
 __pycache__/
+
+# Ignore chroma database
+chroma_db/
+
+# Ignore Excel test files
+src/rag_system/excel_test/*.xlsx

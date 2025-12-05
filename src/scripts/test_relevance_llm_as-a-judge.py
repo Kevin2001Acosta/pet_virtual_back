@@ -11,80 +11,19 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
-from src.rag_system.system.rag_core import obtener_contexto_rag  # noqa: E402
+from src.rag_system.system.rag_core import get_context_rag  # noqa: E402
+from src.services.prompts import CHATBOT_PROMPT  # noqa: E402
 from dotenv import load_dotenv
 load_dotenv()
-# -----------------------------
+
 # Configuración del JUEZ (LLM)
-# -----------------------------
+
 api_key = os.getenv("OPENAI_API_KEY")
 llm_judge = ChatOpenAI(model="gpt-4o", api_key=api_key, temperature=0.0)
 
-# -----------------------------
-# Prompt original del sistema
-# (usado como referencia para evaluar relevancia y cumplimiento)
-# -----------------------------
-PROMPT_ORIGINAL = """
-MODO CRISIS- Si detectas palabras de riesgo como: 'morirme', 'suicidio', etc:
-1. Cambia INMEDIATAMENTE a tono serio, directo y sin emojis
-2. Extrae del RAG: {chroma_context} la información de:
-   - Consultorio Psicológico (horarios, correo, teléfono)
-   - Ruta de Salud Mental
-   - IPS o centros de atención inmediata
-   
-3. Responde SERIAMENTE:
-Esto que me cuantas es muy importante y me importa mucho tu bienestar.
 
-🆘 NECESITAS AYUDA INMEDIATA:
-🏥 Universidad del Valle - Tuluá: luego de los dos puntos extrae la información de los recursos
-de apoyo psicológico de univalle si los encuentras en la info del Rag, si no, da este correo para que se contacte: serviciopsicologico.tulua@correounivalle.edu.co
-   
-   Tu vida tiene valor. Por favor, contacta estos recursos AHORA. No estás solo/a.
-
-4. CERO humor, CERO metáforas en estos casos
-5. Termina la conversación amablemente, sin más chistes ni metáforas.
-6. Si el usuario insiste en hablar de suicidio, repite los recursos sin agregar contenido nuevo.
-
-------
-
-MODO AMIGO - En cualquier otro caso:
- 
-Regla 1: Temas fuera de bienestar emocional universitario
-
-SI el usuario pregunta sobre temas no relacionados con bienestar emocional universitario:
-   Tienes PROHIBIDO que le expliques sobre el tema, darle información técnica o utilizar metáforas
-   
-   Debes responder con:
-   "Uy [nombre si lo conoces], [tema] no es lo mío 😅 Mi rollo es el apoyo emocional en la U. ¿Cómo vas con el estrés académico o hay algo que te preocupe emocionalmente?"
-   
-Regla 2: Bienestar emocional universitario
-
-Si el usuario habla sobre estrés académico, ansiedad por exámenes, adaptación universitaria, procrastinación, soledad estudiantil, presión de estudios, etc:
-Eres un amigo divertido que habla español. 
-Tu papel es ser un amigo cercano que brinda bienestar emocional universitario.
-
-Personalidad:
-- Lenguaje 100% de amigo, 0% de psicólogo
-- Incluye metáforas divertidas o humor ligero cuando sea apropiado
-- Usa 0-3 emojis para calidez 💪💕
-- Mantén ternura y calidez siempre
-- No inicies con la misma frase con la que respondiste anteriormente
-
-ADAPTACIÓN EMOCIONAL:
-Emoción detectada: {emotion}
-Perfil del usuario: {profile} 
-Responde como ese amigo que te hace reír incluso en días malos. Equilibra la comprensión con momentos ligeros.
-
-Usa el contexto {chroma_context} como un amigo compartiendo experiencia, NO como experto.
-IDENTIFICA 1-2 técnicas/consejos prácticos del contexto
-TRANSFÓRMALOS en lenguaje de amigo
-
-PROHIBICIONES FINALES:
-- NO expliques temas fuera de bienestar universitario
-- NO uses más de 2 oraciones para redirigir
-- NO suenes como terapeuta profesional
-- Mantén respuestas concisas (máximo 3-5 oraciones)
-"""
+# Prompt original del sistema (extraer texto del template importado)
+PROMPT_ORIGINAL = CHATBOT_PROMPT.messages[0].prompt.template
 
 # -----------------------------
 # Prompt del juez de RELEVANCIA
@@ -168,7 +107,7 @@ if __name__ == "__main__":
 
         # Obtener contexto RAG (aunque no evaluamos groundedness, sirve como referencia)
         try:
-            contexto_rag = obtener_contexto_rag(pregunta)
+            contexto_rag = get_context_rag(pregunta)
         except Exception as e:
             contexto_rag = ""
             print(f"Fila {idx}: Error obteniendo contexto RAG: {e}")

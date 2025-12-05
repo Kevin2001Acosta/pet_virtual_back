@@ -1,7 +1,7 @@
-from .retriever import buscar_documentos
-from .processor import procesar_texto
+from .retriever import get_documents_by_query
+from .processor import normalize_text
 
-def obtener_contexto_rag(query: str) -> str:
-    docs = buscar_documentos(query)
-    contexto = [procesar_texto(d) for d in docs]
+def get_context_rag(query: str) -> str:
+    docs = get_documents_by_query(query)
+    contexto = [normalize_text(d) for d in docs]
     return "\n".join(contexto)
